@@ -45,36 +45,166 @@ if __name__ == "__main__":
 
 See `examples/simple.py` for a minimal working example, or `examples/comprehensive.py` for all features.
 
-## Implementation Details
+## Architecture
 
-The library is organized into several key components:
+### Component Diagram
 
-### Core Components
+```mermaid
+graph TB
+    SAC[SendspinAudioClient<br/>Main API - Connection, State Management, Event Handling]
+    ASH[AudioStreamHandler<br/>Stream Lifecycle Management]
+    AP[AudioPlayer<br/>Audio Playback with Time Sync]
+    AS[AppState<br/>State Store]
+    ADM[AudioDeviceManager<br/>Device Discovery]
+    SC[SendspinClient<br/>aiosendspin]
+    
+    SAC -->|creates/manages| ASH
+    SAC -->|creates/manages| AS
+    SAC -->|uses| ADM
+    SAC -->|wraps| SC
+    ASH -->|creates/manages| AP
+    SAC -->|reads/updates| AS
+    ASH -->|uses| SC
+    AP -->|uses| SC
+    
+    style SAC fill:#e1f5ff
+    style ASH fill:#fff4e1
+    style AP fill:#ffe1f5
+    style AS fill:#e1ffe1
+    style ADM fill:#f5e1ff
+    style SC fill:#ffe1e1
+```
 
-- **`SendspinAudioClient`** (`client.py`): Main API class providing programmatic access to Sendspin servers. Handles connection management, state tracking, event listeners, and provides query methods for metadata, playback state, volume, and timing metrics.
+### Component Responsibilities
 
-- **`AudioPlayer`** (`audio.py`): Low-level audio playback engine with DAC-level timing precision. Implements:
-  - Time-synchronized playback using server timestamps and client clock synchronization
-  - Intelligent buffering with configurable thresholds to absorb network jitter
-  - Sync error correction via playback speed adjustment (±4% range)
-  - Gap and overlap detection for seamless audio continuity
-  - Playback state machine (initializing, waiting, playing, re-anchoring)
+#### SendspinAudioClient
+- **Purpose**: Main public API for library users
+- **Responsibilities**:
+  - Connection management (connect, disconnect)
+  - Configuration and initialization
+  - Event listener setup and delegation
+  - State query methods (get_metadata, get_playback_state, etc.)
+  - Volume control (set_volume)
+  - Timing metrics access
+- **Interactions**:
+  - Creates and manages `AudioStreamHandler`
+  - Creates and manages `AppState`
+  - Uses `AudioDeviceManager` (via `resolve_audio_device()`)
+  - Wraps `SendspinClient` from aiosendspin
+  - Updates `AppState` based on server events
+  - Delegates audio chunks to `AudioStreamHandler`
 
-- **`AudioStreamHandler`** (`client.py`): Manages audio stream lifecycle and format changes. Handles stream start/end/clear events and audio chunk routing to the AudioPlayer.
+#### AudioStreamHandler
+- **Purpose**: Manages audio stream lifecycle and format changes
+- **Responsibilities**:
+  - Handles stream start/end/clear events
+  - Routes audio chunks to `AudioPlayer`
+  - Manages `AudioPlayer` initialization and reconfiguration
+  - Clears audio queue on stream events
+- **Interactions**:
+  - Creates and manages `AudioPlayer` instances
+  - Receives audio chunks from `SendspinAudioClient`
+  - Receives stream events from `SendspinAudioClient`
+  - Calls `AudioPlayer.submit()` for audio chunks
+  - Calls `AudioPlayer.clear()` on stream events
 
-- **`AudioDeviceManager`** (`audio_device.py`): Object-oriented audio device discovery and selection. Provides methods to list, find, and select audio output devices.
+#### AudioPlayer
+- **Purpose**: Low-level time-synchronized audio playback
+- **Responsibilities**:
+  - Accepts audio chunks with server timestamps
+  - Time synchronization and drift correction
+  - Buffering and underrun prevention
+  - Playback speed adjustment for sync correction
+  - Gap/overlap detection and handling
+  - Volume and mute control
+- **Interactions**:
+  - Receives audio chunks from `AudioStreamHandler`
+  - Uses `SendspinClient.compute_play_time()` and `compute_server_time()` for time sync
+  - Outputs audio via `sounddevice`
+  - Provides timing metrics to `SendspinAudioClient`
 
-- **`AppState`** (`client.py`): Internal state management mirroring server state (playback state, metadata, volume, group info) with client-side progress interpolation.
+#### AppState
+- **Purpose**: Mirrors server state for client presentation
+- **Responsibilities**:
+  - Stores playback state, metadata, volume, group info
+  - Tracks progress with interpolation support
+  - Provides `update_metadata()` and `describe()` methods
+- **Interactions**:
+  - Updated by `SendspinAudioClient` event handlers
+  - Read by `SendspinAudioClient` query methods
+  - Used for progress interpolation calculations
 
-### Architecture
+#### AudioDeviceManager
+- **Purpose**: Audio device discovery and selection
+- **Responsibilities**:
+  - Discovers available audio output devices
+  - Provides device lookup methods (by index, name)
+  - Caches device list
+- **Interactions**:
+  - Used by `SendspinAudioClient` via `resolve_audio_device()` helper
+  - Provides `AudioDevice` instances for device selection
+  - Static method `list_audio_devices()` for public API
 
-The library follows an event-driven architecture:
-- Server events (metadata updates, group changes, controller state) trigger internal handlers
-- Optional user-defined callbacks can be registered for reactive programming
-- State can be queried actively via public API methods
-- Audio chunks are processed asynchronously with precise timing
+### Data Flow
 
-All core audio playback, synchronization, and state management logic is based on the [sendspin-cli](https://github.com/Sendspin/sendspin-cli) reference implementation.
+#### Connection Flow
+```
+User → SendspinAudioClient.connect()
+       ↓
+       SendspinClient.connect() (aiosendspin)
+       ↓
+       Setup listeners → Event handlers update AppState
+       ↓
+       AudioStreamHandler ready to receive chunks
+```
+
+#### Audio Playback Flow
+```
+Server → SendspinClient → SendspinAudioClient._handle_audio_chunk()
+                          ↓
+                          AudioStreamHandler.on_audio_chunk()
+                          ↓
+                          AudioPlayer.submit()
+                          ↓
+                          sounddevice (audio output)
+```
+
+#### State Update Flow
+```
+Server → SendspinClient → SendspinAudioClient event handlers
+                          ↓
+                          AppState.update_*()
+                          ↓
+                          Optional user callbacks
+                          ↓
+                          User query methods (get_metadata, etc.)
+```
+
+#### Event Handler Flow
+```
+Server Event → SendspinClient listener
+                ↓
+                SendspinAudioClient._handle_*()
+                ↓
+                AppState.update()
+                ↓
+                Optional user callback (on_metadata_update, etc.)
+                ↓
+                _print_event() (logs + on_event callback)
+```
+
+### Key Design Patterns
+
+1. **Delegation**: `SendspinAudioClient` delegates audio handling to `AudioStreamHandler`, which delegates playback to `AudioPlayer`
+2. **State Management**: `AppState` centralizes all state, updated by event handlers, read by query methods
+3. **Event-Driven**: Server events trigger handlers that update state and call user callbacks
+4. **Reference Design**: All core audio playback and synchronization logic is based on the original [sendspin-cli](https://github.com/Sendspin/sendspin-cli) implementation.
+
+### External Dependencies
+
+- **aiosendspin.SendspinClient**: WebSocket connection and protocol handling
+- **sounddevice**: Audio output device access and playback
+- **numpy**: Audio data processing
 
 ## Limitations
 
