@@ -49,7 +49,10 @@ autodoc_default_options = {
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'sphinx_rtd_theme'
-html_static_path = ['_static']
+# Create _static directory if it doesn't exist (for CI builds)
+static_dir = Path(__file__).parent / '_static'
+static_dir.mkdir(exist_ok=True)
+html_static_path = ['_static'] if static_dir.exists() else []
 
 # RTD theme version switcher configuration
 # sphinx-multiversion will automatically inject 'versions' into html_context
@@ -65,7 +68,8 @@ html_context = {
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
-    'aiosendspin': ('https://aiosendspin.readthedocs.io/', None),
+    # Note: aiosendspin docs URL may not be available, so we skip it
+    # 'aiosendspin': ('https://aiosendspin.readthedocs.io/', None),
 }
 
 # -- Options for sphinx-multiversion ------------------------------------------
@@ -79,8 +83,10 @@ smv_tag_whitelist = r'^v\d+\.\d+.*$'
 # Only main/master branches
 smv_branch_whitelist = r'^(main|master)$'
 
-# Whitelist pattern for remotes (matched against git remote)
-smv_remote_whitelist = r'^origin$'
+# Don't use remote refs to avoid conflicts with local branches
+# Only use local branches and tags - this prevents "master" vs "origin/master" conflicts
+# Set to empty pattern to disable remote refs entirely
+smv_remote_whitelist = r'^$'
 
 # Pattern for released versions (tags that are considered releases)
 smv_released_pattern = r'^refs/tags/v\d+\.\d+.*$'
@@ -88,7 +94,7 @@ smv_released_pattern = r'^refs/tags/v\d+\.\d+.*$'
 # Output directory format - each version gets its own directory
 smv_outputdir_format = '{ref.name}'
 
-# Prefer tags over branches
+# Prefer local branches over remote refs to avoid conflicts
 smv_prefer_remote_refs = False
 
 # Show banner for unreleased versions
