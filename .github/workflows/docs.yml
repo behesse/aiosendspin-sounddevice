@@ -65,15 +65,38 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
-      - name: Create latest symlink
+      - name: Create root index and latest symlink
         run: |
           cd docs/build/html
           # Create a 'latest' symlink pointing to main or master
           if [ -d "main" ]; then
             ln -sfn main latest
+            LATEST_DIR="main"
           elif [ -d "master" ]; then
             ln -sfn master latest
+            LATEST_DIR="master"
           fi
+          
+          # Create root index.html that redirects to latest
+          # This ensures the root URL works and redirects to the latest version
+          cat > index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta http-equiv="refresh" content="0; url=latest/">
+            <link rel="canonical" href="latest/">
+            <script>window.location.href = "latest/"</script>
+            <title>Redirecting to latest documentation...</title>
+          </head>
+          <body>
+            <p>Redirecting to <a href="latest/">latest documentation</a>...</p>
+          </body>
+          </html>
+          EOF
+          
+          # Also create a .nojekyll file to ensure GitHub Pages serves everything correctly
+          touch .nojekyll
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

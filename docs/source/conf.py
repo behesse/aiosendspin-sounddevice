@@ -51,6 +51,15 @@ autodoc_default_options = {
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
 
+# RTD theme version switcher configuration
+# sphinx-multiversion will automatically inject 'versions' into html_context
+# The RTD theme will use this to show the version dropdown
+html_context = {
+    'display_version': True,
+    'current_version': version,
+    'version': version,
+}
+
 # -- Options for intersphinx extension ---------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html#configuration
 
@@ -78,3 +87,9 @@ smv_released_pattern = r'^refs/tags/v\d+\.\d+.*$'
 
 # Output directory format - each version gets its own directory
 smv_outputdir_format = '{ref.name}'
+
+# Prefer tags over branches
+smv_prefer_remote_refs = False
+
+# Show banner for unreleased versions
+smv_show_banner = True

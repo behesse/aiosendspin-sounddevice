@@ -1,0 +1,77 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+
+categories:
+  - title: '🚀 Features'
+    labels:
+      - 'feature'
+      - 'enhancement'
+      - 'feat'
+  - title: '🐛 Bug Fixes'
+    labels:
+      - 'fix'
+      - 'bugfix'
+      - 'bug'
+  - title: '♻️ Refactoring'
+    labels:
+      - 'refactor'
+      - 'refactoring'
+  - title: '🔧 Maintenance'
+    labels:
+      - 'chore'
+      - 'maintenance'
+
+change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+change-title-escapes: '\<*_&'
+version-resolver:
+  major:
+    labels:
+      - 'major'
+      - 'breaking'
+      - 'breaking-change'
+  minor:
+    labels:
+      - 'minor'
+      - 'feature'
+      - 'enhancement'
+  patch:
+    labels:
+      - 'patch'
+      - 'fix'
+      - 'bugfix'
+      - 'bug'
+
+autolabeler:
+  - label: 'feature'
+    branch:
+      - '/^feat\/.*/'
+      - '/^feature\/.*/'
+  - label: 'fix'
+    branch:
+      - '/^fix\/.*/'
+      - '/^bugfix\/.*/'
+  - label: 'docs'
+    branch:
+      - '/^docs\/.*/'
+  - label: 'refactor'
+    branch:
+      - '/^refactor\/.*/'
+  - label: 'test'
+    branch:
+      - '/^test\/.*/'
+      - '/^tests\/.*/'
+  - label: 'chore'
+    branch:
+      - '/^chore\/.*/'
+      - '/^build\/.*/'
+      - '/^ci\/.*/'
+
+exclude-labels:
+  - 'skip-changelog'
+  - 'invalid'
+
+template: |
+  ## Changes
+
+  $CHANGES
+
