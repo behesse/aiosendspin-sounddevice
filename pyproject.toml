@@ -68,10 +68,9 @@ ignore = [
 line-ending = "lf"
 
 [tool.semantic_release]
-version_variable = "pyproject.toml:project.version"
+version_toml = ["pyproject.toml", "project", "version"]
 build_command = "pip install build && python -m build"
 dist_path = "dist"
-version_toml = "pyproject.toml:project.version"
 upload_to_vcs_release = true
 hvcs = "github"
 commit_author = "github-actions <action@github.com>"
