@@ -60,6 +60,14 @@ jobs:
           pip install build
           python -m build
 
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          pip install twine
+          twine upload dist/*
+
       - name: Upload release assets
         uses: softprops/action-gh-release@v1
         with:
