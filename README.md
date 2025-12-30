@@ -43,7 +43,7 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-See `examples/simple.py` for a minimal working example, or `examples/comprehensive.py` for all features.
+See `examples/simple.py` for a minimal working example, `examples/comprehensive.py` for all features, `examples/discovery.py` for server discovery, `examples/controller.py` for controller commands, or `examples/tui.py` for a full terminal UI example.
 
 ## Architecture
 
@@ -51,19 +51,22 @@ See `examples/simple.py` for a minimal working example, or `examples/comprehensi
 
 ```mermaid
 graph TB
-    SAC[SendspinAudioClient<br/>Main API - Connection, State Management, Event Handling]
+    SAC[SendspinAudioClient<br/>Main API - Connection, State Management, Event Handling, Controller Commands]
     ASH[AudioStreamHandler<br/>Stream Lifecycle Management]
     AP[AudioPlayer<br/>Audio Playback with Time Sync]
     AS[AppState<br/>State Store]
     ADM[AudioDeviceManager<br/>Device Discovery]
+    SD[ServiceDiscovery<br/>Server Discovery via mDNS]
     SC[SendspinClient<br/>aiosendspin]
     
     SAC -->|creates/manages| ASH
     SAC -->|creates/manages| AS
     SAC -->|uses| ADM
+    SAC -->|uses| SD
     SAC -->|wraps| SC
     ASH -->|creates/manages| AP
     SAC -->|reads/updates| AS
+    SAC -->|sends commands| SC
     ASH -->|uses| SC
     AP -->|uses| SC
     
@@ -72,6 +75,7 @@ graph TB
     style AP fill:#ffe1f5
     style AS fill:#e1ffe1
     style ADM fill:#f5e1ff
+    style SD fill:#e1f5e1
     style SC fill:#ffe1e1
 ```
 
@@ -83,7 +87,8 @@ graph TB
   - Connection management (connect, disconnect)
   - Configuration and initialization
   - Event listener setup and delegation
-  - State query methods (get_metadata, get_playback_state, etc.)
+  - State query methods (get_metadata, get_playback_state, get_supported_commands, etc.)
+  - Controller commands (play, pause, next_track, previous_track, switch_group, toggle_play_pause)
   - Volume control (set_volume)
   - Timing metrics access
 - **Interactions**:
@@ -93,6 +98,7 @@ graph TB
   - Wraps `SendspinClient` from aiosendspin
   - Updates `AppState` based on server events
   - Delegates audio chunks to `AudioStreamHandler`
+  - Sends media commands to server via `SendspinClient`
 
 #### AudioStreamHandler
 - **Purpose**: Manages audio stream lifecycle and format changes
@@ -145,6 +151,17 @@ graph TB
   - Provides `AudioDevice` instances for device selection
   - Static method `list_audio_devices()` for public API
 
+#### ServiceDiscovery
+- **Purpose**: mDNS-based server discovery
+- **Responsibilities**:
+  - Discovers Sendspin servers on the local network via mDNS
+  - Tracks multiple discovered servers
+  - Provides continuous discovery or one-time discovery
+- **Interactions**:
+  - Used independently or with `SendspinAudioClient`
+  - Provides `DiscoveredServer` instances with server information
+  - Class method `discover_servers()` for one-time discovery
+
 ### Data Flow
 
 #### Connection Flow
@@ -193,6 +210,30 @@ Server Event → SendspinClient listener
                 _print_event() (logs + on_event callback)
 ```
 
+#### Controller Command Flow
+```
+User → SendspinAudioClient.play() / pause() / next_track() / etc.
+       ↓
+       send_media_command() validates against supported_commands
+       ↓
+       SendspinClient.send_group_command()
+       ↓
+       Server processes command
+       ↓
+       Server sends state update → Event Handler Flow
+```
+
+#### Server Discovery Flow
+```
+User → ServiceDiscovery.start() or ServiceDiscovery.discover_servers()
+       ↓
+       mDNS service browser listens for _sendspin-server._tcp.local.
+       ↓
+       Servers discovered → DiscoveredServer instances
+       ↓
+       User selects server → SendspinAudioClient.connect(url)
+```
+
 ### Key Design Patterns
 
 1. **Delegation**: `SendspinAudioClient` delegates audio handling to `AudioStreamHandler`, which delegates playback to `AudioPlayer`
@@ -205,11 +246,22 @@ Server Event → SendspinClient listener
 - **aiosendspin.SendspinClient**: WebSocket connection and protocol handling
 - **sounddevice**: Audio output device access and playback
 - **numpy**: Audio data processing
+- **zeroconf**: mDNS service discovery for server discovery
+
+## Features
+
+- ✅ **Audio Playback**: Time-synchronized audio playback with DAC-level precision
+- ✅ **Server Discovery**: mDNS-based discovery of Sendspin servers on the network
+- ✅ **Controller Commands**: Full support for media control (play, pause, next, previous, switch group)
+- ✅ **State Management**: Real-time state tracking with metadata, progress, and volume
+- ✅ **Event Listeners**: Optional callbacks for reactive programming
+- ✅ **Audio Device Management**: Object-oriented audio device discovery and selection
+- ✅ **Progress Interpolation**: Client-side progress calculation for smooth UI updates
 
 ## Limitations
 
-See `FEATURE_COMPARISON.md` for current limitations in comparison to [sendspin-cli](https://github.com/Sendspin/sendspin-cli).
-Major missing features are the controller role and service discovery.
+See `FEATURE_COMPARISON.md` for detailed comparison with [sendspin-cli](https://github.com/Sendspin/sendspin-cli).
+The library focuses on the player and controller roles. Server functionality and advanced features are not included.
 
 ## License
 

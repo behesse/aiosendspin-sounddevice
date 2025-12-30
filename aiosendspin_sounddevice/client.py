@@ -776,3 +776,44 @@ class SendspinAudioClient:
     def is_connected(self) -> bool:
         """Check if the client is connected."""
         return self._connected
+
+    async def send_media_command(self, command: MediaCommand) -> None:
+        """Send a media command with validation.
+
+        Args:
+            command: The media command to send.
+
+        """
+        if command not in self._state.supported_commands:
+            self._print_event(f"Server does not support {command.value}")
+            return
+        if self._client is None:
+            raise RuntimeError("Not connected")
+        await self._client.send_group_command(command)
+
+    async def toggle_play_pause(self) -> None:
+        """Toggle between play and pause based on current playback state."""
+        if self._state.playback_state == PlaybackStateType.PLAYING:
+            await self.send_media_command(MediaCommand.PAUSE)
+        else:
+            await self.send_media_command(MediaCommand.PLAY)
+
+    async def play(self) -> None:
+        """Send play command to the server."""
+        await self.send_media_command(MediaCommand.PLAY)
+
+    async def pause(self) -> None:
+        """Send pause command to the server."""
+        await self.send_media_command(MediaCommand.PAUSE)
+
+    async def next_track(self) -> None:
+        """Send next track command to the server."""
+        await self.send_media_command(MediaCommand.NEXT)
+
+    async def previous_track(self) -> None:
+        """Send previous track command to the server."""
+        await self.send_media_command(MediaCommand.PREVIOUS)
+
+    async def switch_group(self) -> None:
+        """Send switch group command to the server."""
+        await self.send_media_command(MediaCommand.SWITCH)

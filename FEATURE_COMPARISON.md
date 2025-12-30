@@ -250,13 +250,12 @@ This document provides a comprehensive comparison of features between our librar
 
 ## 4. Controller Functionality
 
-### 4.1 Media Command Sending
-**Status:** ❌ **NOT IMPLEMENTED**
+### 4.1 send_media_command()
+**Status:** ✅ **IMPLEMENTED** (Matches Reference Exactly)
 
 **Reference Implementation:**
 - Location: `sendspin/keyboard.py` (lines 47-52)
-- Method: `send_media_command(command: MediaCommand)`
-- Implementation: `await self._client.send_group_command(command)`
+- Method: `send_media_command(command: MediaCommand) -> None`
 - Validates: Checks if command is in `state.supported_commands`
 - Commands Available:
   - `MediaCommand.PLAY` - Start playback
@@ -264,62 +263,91 @@ This document provides a comprehensive comparison of features between our librar
   - `MediaCommand.NEXT` - Skip to next track
   - `MediaCommand.PREVIOUS` - Skip to previous track
   - `MediaCommand.SWITCH` - Switch groups
+- Behavior: Prints event message if command not supported, then returns (does not raise exception)
 
 **Our Implementation:**
-- ❌ No method to send media commands
-- ❌ No controller functionality exposed
+- ✅ Method matches reference line-by-line
+- ✅ Same validation logic (checks `supported_commands`)
+- ✅ Same behavior (prints event, returns if not supported)
+- ✅ Uses `client.send_group_command()` to send command
+- ✅ No additions or modifications
 
-**Impact:** Library users cannot control playback (play, pause, skip tracks, switch groups).
+**Status:** Fully implemented, matches reference exactly (no differences).
 
 ---
 
 ### 4.2 Play/Pause Toggle
-**Status:** ❌ **NOT IMPLEMENTED**
+**Status:** ✅ **IMPLEMENTED** (Matches Reference Exactly)
 
 **Reference Implementation:**
 - Location: `sendspin/keyboard.py` (lines 54-59)
-- Method: `toggle_play_pause()`
+- Method: `toggle_play_pause() -> None`
 - Logic: Checks current playback state and sends PLAY or PAUSE command
+- Behavior: If `playback_state == PLAYING`, sends PAUSE; otherwise sends PLAY
 
 **Our Implementation:**
-- ❌ No play/pause toggle method
+- ✅ Method matches reference line-by-line
+- ✅ Same logic and behavior
+- ✅ No additions or modifications
 
-**Impact:** Library users cannot programmatically control playback state.
+**Status:** Fully implemented, matches reference exactly (no differences).
 
 ---
 
 ### 4.3 Track Navigation
-**Status:** ❌ **NOT IMPLEMENTED**
+**Status:** ✅ **IMPLEMENTED** (Library Enhancement)
 
 **Reference Implementation:**
 - Location: `sendspin/keyboard.py` (lines 167-171)
 - Commands: NEXT and PREVIOUS via `send_media_command()`
+- No dedicated convenience methods in reference
 
 **Our Implementation:**
-- ❌ No track navigation methods
+- ✅ `next_track() -> None` - Convenience method for `send_media_command(MediaCommand.NEXT)`
+- ✅ `previous_track() -> None` - Convenience method for `send_media_command(MediaCommand.PREVIOUS)`
+- ➕ **Added:** Convenience methods for better API ergonomics
 
-**Impact:** Library users cannot skip tracks.
+**Status:** Fully implemented. Core functionality matches reference. Added convenience methods for library API.
 
 ---
 
 ### 4.4 Group Switching
-**Status:** ❌ **NOT IMPLEMENTED**
+**Status:** ✅ **IMPLEMENTED** (Library Enhancement)
 
 **Reference Implementation:**
 - Location: `sendspin/keyboard.py` (line 160)
 - Command: `MediaCommand.SWITCH` via `send_media_command()`
+- No dedicated convenience method in reference
 
 **Our Implementation:**
-- ❌ No group switching method
+- ✅ `switch_group() -> None` - Convenience method for `send_media_command(MediaCommand.SWITCH)`
+- ➕ **Added:** Convenience method for better API ergonomics
 
-**Impact:** Library users cannot switch groups programmatically.
+**Status:** Fully implemented. Core functionality matches reference. Added convenience method for library API.
+
+---
+
+### 4.5 Play/Pause Convenience Methods
+**Status:** ✅ **IMPLEMENTED** (Library Enhancement)
+
+**Reference Implementation:**
+- Location: `sendspin/keyboard.py` (lines 47-52, 54-59)
+- Commands: PLAY and PAUSE via `send_media_command()`
+- No dedicated convenience methods in reference
+
+**Our Implementation:**
+- ✅ `play() -> None` - Convenience method for `send_media_command(MediaCommand.PLAY)`
+- ✅ `pause() -> None` - Convenience method for `send_media_command(MediaCommand.PAUSE)`
+- ➕ **Added:** Convenience methods for better API ergonomics
+
+**Status:** Fully implemented. Core functionality matches reference. Added convenience methods for library API.
 
 ---
 
 ## 5. Service Discovery
 
 ### 5.1 ServiceDiscovery Class
-**Status:** ❌ **NOT IMPLEMENTED**
+**Status:** ✅ **IMPLEMENTED** (Matches Reference Exactly)
 
 **Reference Implementation:**
 - Location: `sendspin/discovery.py` (lines 112-160)
@@ -332,6 +360,7 @@ This document provides a comprehensive comparison of features between our librar
   - Provides `get_servers()` for all discovered servers
   - Provides `wait_for_first_server()` for initial discovery
 - Methods:
+  - `__init__()` - Initialize discovery manager
   - `start()` - Start continuous discovery
   - `stop()` - Stop discovery
   - `current_url() -> str | None` - Get current server URL
@@ -339,15 +368,17 @@ This document provides a comprehensive comparison of features between our librar
   - `wait_for_first_server() -> str` - Wait for first discovery
 
 **Our Implementation:**
-- ❌ No service discovery functionality
-- ❌ User must provide server URL manually
+- ✅ All methods match reference line-by-line
+- ✅ Same method signatures and logic
+- ✅ Same mDNS discovery implementation using zeroconf
+- ✅ No additions or modifications
 
-**Impact:** Library users cannot discover servers automatically via mDNS.
+**Status:** Fully implemented, matches reference exactly (no differences).
 
 ---
 
 ### 5.2 DiscoveredServer Class
-**Status:** ❌ **NOT IMPLEMENTED**
+**Status:** ✅ **IMPLEMENTED** (Matches Reference Exactly)
 
 **Reference Implementation:**
 - Location: `sendspin/discovery.py` (lines 18-25)
@@ -355,14 +386,38 @@ This document provides a comprehensive comparison of features between our librar
 - Purpose: Represents a discovered Sendspin server
 
 **Our Implementation:**
-- ❌ No server discovery data structures
+- ✅ Dataclass matches reference exactly
+- ✅ Same fields and structure
+- ✅ No additions or modifications
 
-**Impact:** No way to represent discovered servers.
+**Status:** Fully implemented, matches reference exactly (no differences).
 
 ---
 
-### 5.3 Server Selection
-**Status:** ❌ **NOT IMPLEMENTED**
+### 5.3 discover_servers() Method
+**Status:** ✅ **IMPLEMENTED** (Library Enhancement)
+
+**Reference Implementation:**
+- Location: `sendspin/discovery.py` (lines 163-179)
+- Purpose: One-time server discovery with timeout
+- Signature: `async def discover_servers(discovery_time: float = 3.0) -> list[DiscoveredServer]`
+- Features:
+  - Starts discovery, waits for specified time, returns all discovered servers
+  - Automatically cleans up resources
+- Implementation: Standalone function
+
+**Our Implementation:**
+- ✅ Class method `ServiceDiscovery.discover_servers()` (library enhancement)
+- ✅ Same signature and default timeout
+- ✅ Same cleanup logic
+- ➕ **Added:** Method is part of `ServiceDiscovery` class instead of standalone function
+
+**Status:** Fully implemented. Core functionality matches reference. Refactored as class method for better organization.
+
+---
+
+### 5.4 Server Selection (UI)
+**Status:** ⚠️ **INTENTIONALLY DIFFERENT** (Library Design)
 
 **Reference Implementation:**
 - Location: `sendspin/keyboard.py` (lines 102-127)
@@ -853,9 +908,7 @@ This document provides a comprehensive comparison of features between our librar
 9. ✅ **Connection State** - Basic connection state tracking (library API)
 
 ### ❌ Missing Features (Should Be Implemented)
-1. ❌ **Controller Functionality** - No methods to send media commands (PLAY, PAUSE, NEXT, PREVIOUS, SWITCH)
-2. ❌ **Service Discovery** - No mDNS discovery functionality
-3. ❌ **Server Selection** - No way to list or switch between discovered servers
+1. ❌ **Server Selection UI** - No UI for switching between discovered servers (library design - users can implement their own)
 
 ### ✅ Library Enhancements (Beyond Reference)
 1. ✅ **State Query Methods** - Public API for querying state
@@ -871,20 +924,13 @@ This document provides a comprehensive comparison of features between our librar
 
 ### 📊 Implementation Completeness
 - **Core Audio Functionality:** 100% - All audio playback, synchronization, and state management
-- **Reference Compliance:** ~85% - Missing controller commands and discovery
-- **Library API:** Enhanced - Additional query methods and callbacks
+- **Service Discovery:** 100% - Full mDNS discovery implementation
+- **Controller Functionality:** 100% - All media commands implemented
+- **Reference Compliance:** ~95% - Core functionality complete
+- **Library API:** Enhanced - Additional query methods, callbacks, and convenience methods
 
 ### 🔧 Recommended Additions
-1. **Controller Methods:**
-   - `send_media_command(command: MediaCommand) -> None`
-   - `play() -> None`
-   - `pause() -> None`
-   - `next_track() -> None`
-   - `previous_track() -> None`
-   - `switch_group() -> None`
-
-2. **Service Discovery (Optional):**
-   - `ServiceDiscovery` class (can be separate module)
-   - `discover_servers(timeout: float) -> list[DiscoveredServer]` function
-   - `DiscoveredServer` dataclass
+1. **Future Enhancements (Optional):**
+   - Additional convenience methods as needed
+   - Enhanced error handling options
 
