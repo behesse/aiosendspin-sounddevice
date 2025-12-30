@@ -4,7 +4,7 @@ requires = ["setuptools>=62.3"]
 
 [project]
 name = "aiosendspin-sounddevice"
-version = "1.0.0"
+version = "0.1.0"
 description = "Python library wrapping aiosendspin and sounddevice for programmatic audio playback"
 authors = [
     { name = "Benjamin Hesse", email = "100107950+behesse@users.noreply.github.com" },
@@ -66,3 +66,12 @@ ignore = [
 
 [tool.ruff.format]
 line-ending = "lf"
+
+[tool.semantic_release]
+version_toml = ["pyproject.toml:project.version"]
+build_command = "pip install build && python -m build"
+dist_path = "dist"
+upload_to_vcs_release = false
+hvcs = "github"
+commit_author = "github-actions <action@github.com>"
+changelog_file = ""
