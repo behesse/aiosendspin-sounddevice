@@ -4,7 +4,7 @@ requires = ["setuptools>=62.3"]
 
 [project]
 name = "aiosendspin-sounddevice"
-version = "0.1.0"
+version = "1.0.0"
 description = "Python library wrapping aiosendspin and sounddevice for programmatic audio playback"
 authors = [
     { name = "Benjamin Hesse", email = "100107950+behesse@users.noreply.github.com" },
