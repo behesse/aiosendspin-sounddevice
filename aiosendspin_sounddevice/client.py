@@ -315,8 +315,8 @@ class SendspinAudioClient:
     through sounddevice, including all buffering, time synchronization, and stream management.
     The user is responsible for handling reconnection logic.
 
-    Example:
-        ```python
+    Example::
+
         import asyncio
         from aiosendspin_sounddevice import SendspinAudioClient, SendspinAudioClientConfig
 
@@ -338,7 +338,6 @@ class SendspinAudioClient:
                 await client.disconnect()
 
         asyncio.run(main())
-        ```
 
     """
 

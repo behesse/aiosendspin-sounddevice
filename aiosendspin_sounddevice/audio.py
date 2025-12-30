@@ -73,14 +73,6 @@ class AudioPlayer:
     computes playback times using a time synchronization function. This allows
     for accurate synchronization even when the time base changes during playback.
 
-    Attributes:
-        _loop: The asyncio event loop used for scheduling.
-        _compute_client_time: Function that converts server timestamps to client
-            timestamps (monotonic loop time), accounting for clock drift, offset,
-            and static delay.
-        _compute_server_time: Function that converts client timestamps (monotonic
-            loop time) to server timestamps (inverse of _compute_client_time).
-
     """
 
     _loop: asyncio.AbstractEventLoop
@@ -136,11 +128,8 @@ class AudioPlayer:
 
         Args:
             loop: The asyncio event loop to use for scheduling.
-            compute_client_time: Function that converts server timestamps to client
-                timestamps (monotonic loop time), accounting for clock drift, offset,
-                and static delay.
-            compute_server_time: Function that converts client timestamps (monotonic
-                loop time) to server timestamps (inverse of compute_client_time).
+            compute_client_time: Function that converts server timestamps to client timestamps (monotonic loop time), accounting for clock drift, offset, and static delay.
+            compute_server_time: Function that converts client timestamps (monotonic loop time) to server timestamps (inverse of compute_client_time).
 
         """
         self._loop = loop
