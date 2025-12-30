@@ -47,6 +47,10 @@ dmypy.json
 # Ruff
 .ruff_cache/
 
+# Documentation
+docs/build/
+docs/_build/
+
 # OS
 .DS_Store
 Thumbs.db

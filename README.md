@@ -15,6 +15,23 @@ cd aiosendspin-sounddevice
 pip install .
 ```
 
+For development with documentation support:
+
+```bash
+pip install -e ".[dev]"
+```
+
+## Documentation
+
+API documentation is available in the `docs/` directory. To build the documentation:
+
+```bash
+cd docs
+make html
+```
+
+The generated HTML documentation will be in `docs/build/html/`. See `docs/README.md` for more details.
+
 ## Quick Start
 
 ```python
