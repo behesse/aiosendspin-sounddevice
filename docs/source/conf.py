@@ -28,7 +28,6 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
     'sphinx.ext.viewcode',
-    'sphinx_multiversion',
 ]
 
 templates_path = ['_templates']
@@ -54,17 +53,12 @@ static_dir = Path(__file__).parent / '_static'
 static_dir.mkdir(exist_ok=True)
 html_static_path = ['_static'] if static_dir.exists() else []
 
-# RTD theme version switcher configuration
-# sphinx-multiversion will automatically inject 'versions' into html_context
+# RTD theme configuration
+# Read the Docs automatically provides version switcher
 html_context = {
     'display_version': True,
     'current_version': version,
     'version': version,
-}
-
-# Add version switcher to sidebar
-html_sidebars = {
-    '**': ['versions.html'],
 }
 
 # -- Options for intersphinx extension ---------------------------------------
@@ -76,43 +70,3 @@ intersphinx_mapping = {
     # 'aiosendspin': ('https://aiosendspin.readthedocs.io/', None),
 }
 
-# -- Options for sphinx-multiversion ------------------------------------------
-# https://holzhaus.github.io/sphinx-multiversion/master/configuration.html
-
-def _get_latest_patch_tags():
-    """Get only the latest patch version for each minor version."""
-    import subprocess
-    from collections import defaultdict
-    from packaging import version
-    import re
-    
-    result = subprocess.run(['git', 'tag', '--list', 'v*'], capture_output=True, text=True, check=False)
-    tags = [t.strip() for t in result.stdout.strip().split('\n') if t.strip()]
-    
-    if not tags:
-        return r'^v\d+\.\d+.*$'
-    
-    # Group by major.minor, keep latest patch
-    groups = defaultdict(list)
-    for tag in tags:
-        try:
-            v = version.parse(tag.lstrip('v'))
-            if isinstance(v, version.Version):
-                groups[(v.major, v.minor)].append(tag)
-        except version.InvalidVersion:
-            continue
-    
-    latest = [max(group, key=lambda t: version.parse(t.lstrip('v'))) for group in groups.values()]
-    return '^(' + '|'.join(re.escape(t) for t in latest) + ')$' if latest else r'^v\d+\.\d+.*$'
-
-smv_tag_whitelist = _get_latest_patch_tags()
-smv_branch_whitelist = r'^(main|master)$'
-smv_remote_whitelist = r'^$'
-smv_released_pattern = r'^refs/tags/v\d+\.\d+.*$'
-smv_outputdir_format = '{ref.name}'
-
-# Prefer local branches over remote refs to avoid conflicts
-smv_prefer_remote_refs = False
-
-# Show banner for unreleased versions
-smv_show_banner = True
