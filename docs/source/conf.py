@@ -56,11 +56,15 @@ html_static_path = ['_static'] if static_dir.exists() else []
 
 # RTD theme version switcher configuration
 # sphinx-multiversion will automatically inject 'versions' into html_context
-# The RTD theme will use this to show the version dropdown
 html_context = {
     'display_version': True,
     'current_version': version,
     'version': version,
+}
+
+# Add version switcher to sidebar
+html_sidebars = {
+    '**': ['versions.html'],
 }
 
 # -- Options for intersphinx extension ---------------------------------------
