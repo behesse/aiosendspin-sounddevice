@@ -46,6 +46,16 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Default supported audio formats
+_DEFAULT_SUPPORTED_FORMATS: list[SupportedAudioFormat] = [
+    SupportedAudioFormat(
+        codec=AudioCodec.PCM, channels=2, sample_rate=44_100, bit_depth=16
+    ),
+    SupportedAudioFormat(
+        codec=AudioCodec.PCM, channels=1, sample_rate=44_100, bit_depth=16
+    ),
+]
+
 
 @dataclass
 class AppState:
@@ -298,6 +308,8 @@ class SendspinAudioClientConfig:
     """Static delay compensation in milliseconds."""
     audio_device: AudioDevice | str | int | None = None
     """Audio device. Can be AudioDevice instance, device index (int), name prefix (str), or None for default device."""
+    supported_formats: list[SupportedAudioFormat] | None = None
+    """Supported audio formats. If None, uses default formats (PCM 44.1kHz 16-bit, stereo and mono)."""
     on_metadata_update: Callable[[dict[str, Any]], None] | None = None
     """Optional callback for metadata updates. Receives dict with title, artist, album, progress, duration."""
     on_group_update: Callable[[dict[str, Any]], None] | None = None
@@ -382,6 +394,9 @@ class SendspinAudioClient:
                 logger.exception("Audio device error: %s")
                 raise
 
+        # Use custom formats if provided, otherwise use defaults
+        supported_formats = config.supported_formats if config.supported_formats is not None else _DEFAULT_SUPPORTED_FORMATS
+
         # Create Sendspin client
         self._client = SendspinClient(
             client_id=client_id,
@@ -389,14 +404,7 @@ class SendspinAudioClient:
             roles=[Roles.CONTROLLER, Roles.PLAYER, Roles.METADATA],
             device_info=get_device_info(),
             player_support=ClientHelloPlayerSupport(
-                supported_formats=[
-                    SupportedAudioFormat(
-                        codec=AudioCodec.PCM, channels=2, sample_rate=44_100, bit_depth=16
-                    ),
-                    SupportedAudioFormat(
-                        codec=AudioCodec.PCM, channels=1, sample_rate=44_100, bit_depth=16
-                    ),
-                ],
+                supported_formats=supported_formats,
                 buffer_capacity=32_000_000,
                 supported_commands=[PlayerCommand.VOLUME, PlayerCommand.MUTE],
             ),
