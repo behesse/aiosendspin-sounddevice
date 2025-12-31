@@ -7,7 +7,13 @@ Python library for programmatic audio playback from Sendspin servers. Provides a
 
 ## Installation
 
-> **Note:** This package is not yet available on PyPI. Install from source:
+Install from PyPI:
+
+```bash
+pip install aiosendspin-sounddevice
+```
+
+Or install from source:
 
 ```bash
 git clone https://github.com/behesse/aiosendspin-sounddevice.git
