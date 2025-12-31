@@ -4,10 +4,12 @@ import asyncio
 import logging
 from aiohttp import ClientError
 from aiosendspin_sounddevice import (
+    AudioCodec,
     AudioDevice,
     AudioDeviceManager,
     SendspinAudioClient,
     SendspinAudioClientConfig,
+    SupportedAudioFormat,
 )
 
 # Setup logging to see what's happening
@@ -62,6 +64,23 @@ async def main():
         """Handle general events."""
         print(f"Event: {message}")
 
+    # Configure custom supported audio formats (optional)
+    # If not specified, defaults to PCM 44.1kHz 16-bit (stereo and mono)
+    custom_formats = [
+        SupportedAudioFormat(
+            codec=AudioCodec.PCM, channels=2, sample_rate=48_000, bit_depth=24
+        ),
+        SupportedAudioFormat(
+            codec=AudioCodec.PCM, channels=2, sample_rate=44_100, bit_depth=16
+        ),
+        SupportedAudioFormat(
+            codec=AudioCodec.PCM, channels=1, sample_rate=44_100, bit_depth=16
+        ),
+    ]
+    print(f"\nUsing custom audio formats:")
+    for fmt in custom_formats:
+        print(f"  - {fmt.channels}ch, {fmt.sample_rate}Hz, {fmt.bit_depth}-bit")
+
     # Configure the client with callbacks
     config = SendspinAudioClientConfig(
         url="ws://localhost:8927/sendspin",  # Change to your server URL
@@ -69,6 +88,7 @@ async def main():
         client_name="Example Player",
         static_delay_ms=0.0,  # Adjust if needed for your audio hardware
         audio_device=selected_device,  # Use AudioDevice instance
+        supported_formats=custom_formats,  # Custom audio formats
         on_metadata_update=on_metadata_update,
         on_group_update=on_group_update,
         on_controller_state_update=on_controller_state_update,
