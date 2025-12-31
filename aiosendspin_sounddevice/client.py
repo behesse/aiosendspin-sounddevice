@@ -227,16 +227,23 @@ def resolve_audio_device(device: AudioDevice | str | int | None) -> int | None: 
 class AudioStreamHandler:
     """Manages audio playback state and stream lifecycle."""
 
-    def __init__(self, client: SendspinClient, audio_device: int | None = None) -> None:
+    def __init__(
+        self,
+        client: SendspinClient,
+        audio_device: int | None = None,
+        on_audio_error: Callable[[Exception, str], None] | None = None,
+    ) -> None:
         """Initialize the audio stream handler.
 
         Args:
             client: The Sendspin client instance.
             audio_device: Audio device ID to use. None for default device.
+            on_audio_error: Optional callback for audio errors.
 
         """
         self._client = client
         self._audio_device = audio_device
+        self._on_audio_error = on_audio_error
         self.audio_player: AudioPlayer | None = None
         self._current_format: PCMFormat | None = None
 
@@ -251,8 +258,26 @@ class AudioStreamHandler:
             self.audio_player = AudioPlayer(
                 loop, self._client.compute_play_time, self._client.compute_server_time
             )
-            self.audio_player.set_format(fmt, device=self._audio_device)
-            self._current_format = fmt
+            try:
+                self.audio_player.set_format(fmt, device=self._audio_device)
+                self._current_format = fmt
+            except sounddevice.PortAudioError as e:
+                # Format error - notify callback if available
+                device_info = f"device {self._audio_device}" if self._audio_device is not None else "default device"
+                error_msg = (
+                    f"Failed to configure audio format: {fmt.channels}ch, {fmt.sample_rate}Hz, {fmt.bit_depth}-bit on {device_info}."
+                    f"Error: {e}"
+                )
+                if self._on_audio_error is not None:
+                    try:
+                        self._on_audio_error(e, error_msg)
+                    except Exception:
+                        logger.exception("Error in on_audio_error callback")
+                else:
+                    logger.error(error_msg)
+                # Don't set format, so next chunk will retry
+                self.audio_player = None
+                return
 
         # Submit audio chunk - AudioPlayer handles timing
         if self.audio_player is not None:
@@ -318,6 +343,8 @@ class SendspinAudioClientConfig:
     """Optional callback for controller state updates. Receives dict with volume, muted, supported_commands."""
     on_event: Callable[[str], None] | None = None
     """Optional callback for general events (stream started, stream ended, etc.)."""
+    on_audio_error: Callable[[Exception, str], None] | None = None
+    """Optional callback for audio errors. Receives the exception and a descriptive message."""
 
 
 class SendspinAudioClient:
@@ -412,7 +439,9 @@ class SendspinAudioClient:
         )
 
         # Create audio handler
-        self._audio_handler = AudioStreamHandler(self._client, audio_device=audio_device)
+        self._audio_handler = AudioStreamHandler(
+            self._client, audio_device=audio_device, on_audio_error=config.on_audio_error
+        )
 
         # Setup event listeners - MUST be done before connecting
         self._setup_listeners()

@@ -64,11 +64,18 @@ async def main():
         """Handle general events."""
         print(f"Event: {message}")
 
+    def on_audio_error(exception: Exception, message: str) -> None:
+        """Handle audio errors (e.g., unsupported sample rate)."""
+        print(f"\n⚠️  Audio Error: {message}")
+        print(f"   Exception type: {type(exception).__name__}")
+        print(f"   This usually means the device doesn't support the requested format.")
+        print(f"   Try using a different sample rate or check device capabilities.")
+
     # Configure custom supported audio formats (optional)
     # If not specified, defaults to PCM 44.1kHz 16-bit (stereo and mono)
     custom_formats = [
         SupportedAudioFormat(
-            codec=AudioCodec.PCM, channels=2, sample_rate=48_000, bit_depth=24
+            codec=AudioCodec.PCM, channels=2, sample_rate=48_000, bit_depth=16
         ),
         SupportedAudioFormat(
             codec=AudioCodec.PCM, channels=2, sample_rate=44_100, bit_depth=16
@@ -93,6 +100,7 @@ async def main():
         on_group_update=on_group_update,
         on_controller_state_update=on_controller_state_update,
         on_event=on_event,
+        on_audio_error=on_audio_error,
     )
 
     # Create the client
