@@ -75,24 +75,53 @@ intersphinx_mapping = {
 # -- Options for sphinx-multiversion ------------------------------------------
 # https://holzhaus.github.io/sphinx-multiversion/master/configuration.html
 
-# Whitelist pattern for tags (matched against git tag)
-# Match tags like v0.1.0, v1.0.0, etc.
-smv_tag_whitelist = r'^v\d+\.\d+.*$'
+def _get_latest_patch_tags():
+    """Get only the latest patch version for each minor version."""
+    import subprocess
+    from collections import defaultdict
+    from packaging import version
+    import re
+    
+    result = subprocess.run(['git', 'tag', '--list', 'v*'], capture_output=True, text=True, check=False)
+    tags = [t.strip() for t in result.stdout.strip().split('\n') if t.strip()]
+    
+    if not tags:
+        return r'^v\d+\.\d+.*$'
+    
+    # Group by major.minor, keep latest patch
+    groups = defaultdict(list)
+    for tag in tags:
+        try:
+            v = version.parse(tag.lstrip('v'))
+            if isinstance(v, version.Version):
+                groups[(v.major, v.minor)].append(tag)
+        except version.InvalidVersion:
+            continue
+    
+    latest = [max(group, key=lambda t: version.parse(t.lstrip('v'))) for group in groups.values()]
+    return '^(' + '|'.join(re.escape(t) for t in latest) + ')$' if latest else r'^v\d+\.\d+.*$'
 
-# Whitelist pattern for branches (matched against git branch)
-# Only main/master branches
+def _format_output_dir(ref):
+    """Format tags as v{major}.{minor}, branches as-is."""
+    from packaging import version
+    
+    if not (hasattr(ref, 'refname') and ref.refname.startswith('refs/tags/')):
+        return ref.name
+    
+    try:
+        v = version.parse(ref.name.lstrip('v'))
+        if isinstance(v, version.Version):
+            return f'v{v.major}.{v.minor}'
+    except version.InvalidVersion:
+        pass
+    
+    return ref.name
+
+smv_tag_whitelist = _get_latest_patch_tags()
 smv_branch_whitelist = r'^(main|master)$'
-
-# Don't use remote refs to avoid conflicts with local branches
-# Only use local branches and tags - this prevents "master" vs "origin/master" conflicts
-# Set to empty pattern to disable remote refs entirely
 smv_remote_whitelist = r'^$'
-
-# Pattern for released versions (tags that are considered releases)
 smv_released_pattern = r'^refs/tags/v\d+\.\d+.*$'
-
-# Output directory format - each version gets its own directory
-smv_outputdir_format = '{ref.name}'
+smv_outputdir_format = _format_output_dir
 
 # Prefer local branches over remote refs to avoid conflicts
 smv_prefer_remote_refs = False

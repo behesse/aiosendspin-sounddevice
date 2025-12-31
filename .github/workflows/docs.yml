@@ -12,6 +12,8 @@ on:
       - 'docs/**'
       - 'README.md'
       - 'pyproject.toml'
+  release:
+    types: [published]
   pull_request:
     branches:
       - main
@@ -73,38 +75,40 @@ jobs:
       - name: Build documentation
         run: |
           cd docs
-          # Build for all versions (local branches and tags only)
+          # Build for all versions (local branches and tags)
+          # This builds docs for main/master branches and all v* tags
+          # Static files are duplicated per version (standard sphinx-multiversion behavior)
           sphinx-multiversion source build/html
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
-      - name: Create root index and latest symlink
+      - name: Create root index and setup
         run: |
           cd docs/build/html
-          # Create a 'latest' symlink pointing to main or master
+          # Determine which branch to use for root redirect (main or master)
           if [ -d "main" ]; then
-            ln -sfn main latest
             LATEST_DIR="main"
           elif [ -d "master" ]; then
-            ln -sfn master latest
             LATEST_DIR="master"
+          else
+            LATEST_DIR="main"
           fi
           
-          # Create root index.html that redirects to latest
-          # This ensures the root URL works and redirects to the latest version
-          cat > index.html << 'EOF'
+          # Create root index.html that redirects to main/master
+          # This ensures the root URL works and redirects to the latest branch version
+          cat > index.html << EOF
           <!DOCTYPE html>
           <html>
           <head>
             <meta charset="utf-8">
-            <meta http-equiv="refresh" content="0; url=latest/">
-            <link rel="canonical" href="latest/">
-            <script>window.location.href = "latest/"</script>
-            <title>Redirecting to latest documentation...</title>
+            <meta http-equiv="refresh" content="0; url=${LATEST_DIR}/">
+            <link rel="canonical" href="${LATEST_DIR}/">
+            <script>window.location.href = "${LATEST_DIR}/"</script>
+            <title>Redirecting to documentation...</title>
           </head>
           <body>
-            <p>Redirecting to <a href="latest/">latest documentation</a>...</p>
+            <p>Redirecting to <a href="${LATEST_DIR}/">documentation</a>...</p>
           </body>
           </html>
           EOF
@@ -123,7 +127,12 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')
+    # Only deploy on main/master branch pushes (not on tags/releases)
+    # This avoids environment protection issues with tag/release deployments
+    # When a tag is created, the build runs and includes the new tag version,
+    # but deployment is skipped. The next main/master push will deploy everything
+    # including the new tag version.
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     steps:
       - name: Deploy to GitHub Pages
         id: deployment

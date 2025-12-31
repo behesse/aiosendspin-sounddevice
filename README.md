@@ -1,7 +1,7 @@
 # aiosendspin-sounddevice
 
 > **⚠️ Work in Progress**  
-> This library is currently under active development and not yet available on PyPI. API might change heavily. It's also not versioned yet.
+> This library is currently under active development. API might change heavily.
 
 Python library for programmatic audio playback from Sendspin servers. Provides a clean API for connecting to Sendspin servers, receiving synchronized audio streams, and playing them through local audio devices with precise time synchronization, buffering, and drift correction.
 
@@ -10,7 +10,7 @@ Python library for programmatic audio playback from Sendspin servers. Provides a
 > **Note:** This package is not yet available on PyPI. Install from source:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/behesse/aiosendspin-sounddevice.git
 cd aiosendspin-sounddevice
 pip install .
 ```
