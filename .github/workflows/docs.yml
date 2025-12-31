@@ -80,6 +80,21 @@ jobs:
           # Static files are duplicated per version (standard sphinx-multiversion behavior)
           sphinx-multiversion source build/html
 
+      - name: Rename tag directories to v{major}.{minor} format
+        run: |
+          cd docs/build/html
+          # Rename tag directories from v{major}.{minor}.{patch} to v{major}.{minor}
+          # This keeps paths stable across patch releases
+          for dir in v*.*.*; do
+            if [ -d "$dir" ]; then
+              # Extract major.minor from directory name (e.g., v1.0.2 -> v1.0)
+              new_name=$(echo "$dir" | sed -E 's/^v([0-9]+\.[0-9]+)\.[0-9]+$/v\1/')
+              if [ "$new_name" != "$dir" ] && [ ! -d "$new_name" ]; then
+                mv "$dir" "$new_name"
+              fi
+            fi
+          done
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 

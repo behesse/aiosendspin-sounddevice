@@ -101,27 +101,11 @@ def _get_latest_patch_tags():
     latest = [max(group, key=lambda t: version.parse(t.lstrip('v'))) for group in groups.values()]
     return '^(' + '|'.join(re.escape(t) for t in latest) + ')$' if latest else r'^v\d+\.\d+.*$'
 
-def _format_output_dir(ref):
-    """Format tags as v{major}.{minor}, branches as-is."""
-    from packaging import version
-    
-    if not (hasattr(ref, 'refname') and ref.refname.startswith('refs/tags/')):
-        return ref.name
-    
-    try:
-        v = version.parse(ref.name.lstrip('v'))
-        if isinstance(v, version.Version):
-            return f'v{v.major}.{v.minor}'
-    except version.InvalidVersion:
-        pass
-    
-    return ref.name
-
 smv_tag_whitelist = _get_latest_patch_tags()
 smv_branch_whitelist = r'^(main|master)$'
 smv_remote_whitelist = r'^$'
 smv_released_pattern = r'^refs/tags/v\d+\.\d+.*$'
-smv_outputdir_format = _format_output_dir
+smv_outputdir_format = '{ref.name}'
 
 # Prefer local branches over remote refs to avoid conflicts
 smv_prefer_remote_refs = False
